@@ -38,6 +38,10 @@ $app->add(function (Request $request, RequestHandler $handler) use ($app) {
 
     // Call the next middleware handler
     $response = $handler->handle($request);
+    $response = $response
+    ->withHeader('Access-Control-Allow-Origin', '*')
+    ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization')
+    ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     return $response;
 });
 
@@ -61,12 +65,18 @@ $app->post('/login', function (Request $request, Response $response, $args) {
     $stmt = $pdo->prepare($query);
     $stmt->bindParam(':GMAIL', $gmail);
     $stmt->execute();
+    if($stmt->execute()==0){
+        $response->getBody()->write(json_encode(['success' => false, 'message' => 'Email or password does not exist. Please register.']));
+        return $response;
+    }
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
     $hashedPassword = $result['password'];
     if (password_verify($pwd, $hashedPassword)) {
         $response->getBody()->write(json_encode(['success' => true, 'message' => 'Welcome '.$result['name']]));
+        return $response;
     } else {
         $response->getBody()->write(json_encode(['success' => false, 'message' => 'Email or password does not exist. Please register.']));
+        return $response;
     }
     return $response->withHeader('Content-Type', 'application/json');
 });
