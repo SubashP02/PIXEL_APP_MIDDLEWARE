@@ -221,8 +221,8 @@ $app->post('/email',function(Request $request,Response $response){
     $mail->isSMTP();
     $mail->Host       = 'smtp.gmail.com';                     //Set the SMTP server to send through
     $mail->SMTPAuth   = true;                                   //Enable SMTP authentication
-    $mail->Username   = 'subashparthiban2@gmail.com';                     //SMTP username
-    $mail->Password   = 'yobqzacylfpojbgj';                               //SMTP password
+    $mail->Username   = '*****@gmail.com';                     //SMTP username
+    $mail->Password   = '*****';                               //SMTP password
     $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;            //Enable implicit TLS encryption
     $mail->Port       = 465; 
     $mail->setFrom('subashparthiban2@gmail.com', 'subash');
