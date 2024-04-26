@@ -174,6 +174,16 @@ $app->get('/programmablecomponents',function(Request $request,Response $response
     return $response->withHeader('Content-Type', 'application/json');
  });
  
+ $app->get('/allcomponent',function(Request $request,Response $response){
+    $pdo = $request->getAttribute('pdo');
+    $query="SELECT c_name, COUNT(*) AS no_of_counts FROM main GROUP BY c_name;";
+    $stmt=$pdo->prepare($query);
+    $stmt->execute();
+    $result=$stmt->fetchAll(PDO::FETCH_ASSOC);
+    $response->getBody()->write(json_encode($result));
+    return $response->withHeader('Content-Type', 'application/json');
+ });
+
 
  $app->post('/forgetPassword',function(Request $request,Response $response){
     $pdo = $request->getAttribute('pdo');
