@@ -1,5 +1,6 @@
 <?php
 
+use PgSql\Result;
 use Slim\Factory\AppFactory;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -153,6 +154,22 @@ $app->post('/registration',function(Request $request,Response $response){
     return $response->withHeader('Content-Type', 'application/json');
     
 });
+
+
+$app->post('/components',function(Request $request,Response $response){
+    $pdo = $request->getAttribute('pdo');
+    $data = json_decode(file_get_contents('php://input'), true);  
+    $category = $data['category'];
+    $query="SELECT c_name, category, COUNT(*) AS no_of_counts FROM main WHERE category = :category GROUP BY c_name;";
+    $stmt = $pdo->prepare($query);
+    $stmt->bindParam(':category',$category);
+    $stmt->execute();
+    $result=$stmt->fetchAll(PDO::FETCH_ASSOC);
+    $response->getBody()->write(json_encode($result));
+    return $response->withHeader('Content-Type', 'application/json');
+
+});
+
 
 $app->get('/programmablecomponents',function(Request $request,Response $response){
     $pdo = $request->getAttribute('pdo');
