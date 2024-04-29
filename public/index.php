@@ -256,6 +256,10 @@ $app->post('/email',function(Request $request,Response $response){
     $data =  json_decode(file_get_contents('php://input'), true);  
     $email = $data['email'];
     $owner = $data['name'];
+    if(strlen($owner)==0&&strlen($data['subject']==0)){
+        $response->getBody()->write(json_encode(['success' => false, 'message' => 'message should not be empty']));
+        return $response;
+    }
     $mail = new PHPMailer(true);
     $mail->isSMTP();
     $mail->Host       = 'smtp.gmail.com';                     //Set the SMTP server to send through
