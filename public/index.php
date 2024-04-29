@@ -254,16 +254,18 @@ $app->post('/updatePassword',function(Request $request,Response $response){
 
 $app->post('/email',function(Request $request,Response $response){
     $data =  json_decode(file_get_contents('php://input'), true);  
+    $email = $data['email'];
+    $owner = $data['name'];
     $mail = new PHPMailer(true);
     $mail->isSMTP();
     $mail->Host       = 'smtp.gmail.com';                     //Set the SMTP server to send through
     $mail->SMTPAuth   = true;                                   //Enable SMTP authentication
-    $mail->Username   = '*****@gmail.com';                     //SMTP username
-    $mail->Password   = '*****';                               //SMTP password
+    $mail->Username   = 'pixelexperttechnology@gmail.com';                     //SMTP username
+    $mail->Password   = 'azdxvitwcroyplet';                               //SMTP password
     $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;            //Enable implicit TLS encryption
     $mail->Port       = 465; 
-    $mail->setFrom('subashparthiban2@gmail.com', 'subash');
-    $mail->addAddress('subash.p@pixelexpert.net', 'Ram');     //Add a recipient
+    $mail->setFrom($email, $owner);
+    $mail->addAddress('subash.p@pixelexpert.net', 'subashpixel');     //Add a recipient
     $mail->isHTML(true);                                  //Set email format to HTML
     $mail->Subject = $data['subject'];
     $mail->Body    = $data['body'];
