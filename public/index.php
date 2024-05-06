@@ -127,7 +127,7 @@ $app->post('/registration',function(Request $request,Response $response){
                 return true;
         }     
     }
-    if(gmail_verify($gmail)==true){
+    if(gmail_verify($gmail) == true){
         $response->getBody()->write(json_encode(['success' => false, 'message' => "provide pixel expert email "]));
         return $response;
     }
@@ -156,50 +156,61 @@ $app->post('/registration',function(Request $request,Response $response){
 });
 
 
-$app->post('/components',function(Request $request,Response $response){
+$app->post('/getComponentList',function(Request $request,Response $response){
     $pdo = $request->getAttribute('pdo');
     $data = json_decode(file_get_contents('php://input'), true);  
     $category = $data['category'];
-    $query="SELECT c_name, category, COUNT(*) AS no_of_counts FROM main WHERE category = :category GROUP BY c_name;";
-    $stmt = $pdo->prepare($query);
-    $stmt->bindParam(':category',$category);
-    $stmt->execute();
-    $result=$stmt->fetchAll(PDO::FETCH_ASSOC);
-    $response->getBody()->write(json_encode($result));
-    return $response->withHeader('Content-Type', 'application/json');
+    if($category == 3){
+        $query="SELECT c_name, category, COUNT(*) AS no_of_counts FROM main GROUP BY c_name;";
+        $stmt = $pdo->prepare($query);
+        $stmt->execute();
+        $result=$stmt->fetchAll(PDO::FETCH_ASSOC);
+        $response->getBody()->write(json_encode($result)); 
+        return $response->withHeader('Content-Type', 'application/json');
 
+    }else{
+        $query="SELECT c_name, category, COUNT(*) AS no_of_counts FROM main WHERE category = :category GROUP BY c_name;";
+        $stmt = $pdo->prepare($query);
+        $stmt->bindParam(':category',$category);
+        $stmt->execute();
+        $result=$stmt->fetchAll(PDO::FETCH_ASSOC);
+        $response->getBody()->write(json_encode($result));
+        return $response->withHeader('Content-Type', 'application/json');
+    
+    }
+  
 });
 
 
-$app->get('/programmablecomponents',function(Request $request,Response $response){
-    $pdo = $request->getAttribute('pdo');
-    $query="SELECT c_name, COUNT(*) AS no_of_counts FROM main WHERE category = 1 GROUP BY c_name;";
-    $stmt=$pdo->prepare($query);
-    $stmt->execute();
-    $result=$stmt->fetchAll(PDO::FETCH_ASSOC);
-    $response->getBody()->write(json_encode($result));
-    return $response->withHeader('Content-Type', 'application/json');
- });
+// $app->get('/programmablecomponents',function(Request $request,Response $response){
+//     $pdo = $request->getAttribute('pdo');
+//     $query="SELECT c_name, COUNT(*) AS no_of_counts FROM main WHERE category = 1 GROUP BY c_name;";
+//     $stmt=$pdo->prepare($query);
+//     $stmt->execute();
+//     $result=$stmt->fetchAll(PDO::FETCH_ASSOC);
+//     $response->getBody()->write(json_encode($result));
+//     return $response->withHeader('Content-Type', 'application/json');
+//  });
 
- $app->get('/nonprogrammablecomponents',function(Request $request,Response $response){
-    $pdo = $request->getAttribute('pdo');
-    $query="SELECT c_name, category, COUNT(*) AS no_of_counts FROM main WHERE category = 2 GROUP BY c_name;";
-    $stmt=$pdo->prepare($query);
-    $stmt->execute();
-    $result=$stmt->fetchAll(PDO::FETCH_ASSOC);
-    $response->getBody()->write(json_encode($result));
-    return $response->withHeader('Content-Type', 'application/json');
- });
+//  $app->get('/nonprogrammablecomponents',function(Request $request,Response $response){
+//     $pdo = $request->getAttribute('pdo');
+//     $query="SELECT c_name, category, COUNT(*) AS no_of_counts FROM main WHERE category = 2 GROUP BY c_name;";
+//     $stmt=$pdo->prepare($query);
+//     $stmt->execute();
+//     $result=$stmt->fetchAll(PDO::FETCH_ASSOC);
+//     $response->getBody()->write(json_encode($result));
+//     return $response->withHeader('Content-Type', 'application/json');
+//  });
  
- $app->get('/allcomponent',function(Request $request,Response $response){
-    $pdo = $request->getAttribute('pdo');
-    $query="SELECT c_name, COUNT(*) AS no_of_counts FROM main GROUP BY c_name;";
-    $stmt=$pdo->prepare($query);
-    $stmt->execute();
-    $result=$stmt->fetchAll(PDO::FETCH_ASSOC);
-    $response->getBody()->write(json_encode($result));
-    return $response->withHeader('Content-Type', 'application/json');
- });
+//  $app->get('/allcomponent',function(Request $request,Response $response){
+//     $pdo = $request->getAttribute('pdo');
+//     $query="SELECT c_name, COUNT(*) AS no_of_counts FROM main GROUP BY c_name;";
+//     $stmt=$pdo->prepare($query);
+//     $stmt->execute();
+//     $result=$stmt->fetchAll(PDO::FETCH_ASSOC);
+//     $response->getBody()->write(json_encode($result));
+//     return $response->withHeader('Content-Type', 'application/json');
+//  });
 
 
  $app->post('/forgetPassword',function(Request $request,Response $response){
@@ -264,11 +275,19 @@ $app->post('/email',function(Request $request,Response $response){
     $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;            //Enable implicit TLS encryption
     $mail->Port       = 465; 
     $mail->setFrom('subashparthiban2@gmail.com', $owner);
-    $mail->addCC('subash.p@pixelexpert.net');
-    $mail->addAddress('karunkumar.k@pixelexpert.net', 'subashpixel');     //Add a recipient
+    $mail->addAddress('karthik.s@pixelexpert.net', 'karthik');     //Add a recipient
     $mail->isHTML(true);                                  //Set email format to HTML
     $mail->Subject = $data['subject'];
-    $mail->Body    = $data['body'];
+    $mail->Body = 'Hi Kalaichelvi Dhandapani <br> Below is the component list that I want, Please check and give the approval<br><br><br>';
+    $i=1;
+    foreach ($data['body'] as $components) {
+            $mail->Body .= $i.'. '.$components.'<br>';
+            $i++;
+    }
+    
+
+    $mail->Body .= '<br>Thanks<br>' . $data['name'];
+       
     $mail->send();
     if($mail){
      $response->getBody()->write(json_encode(['success' => true, 'message' => 'Successfully send']));
