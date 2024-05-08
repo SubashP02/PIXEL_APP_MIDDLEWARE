@@ -161,7 +161,7 @@ $app->post('/getComponentList',function(Request $request,Response $response){
     $data = json_decode(file_get_contents('php://input'), true);  
     $category = $data['category'];
     if($category == 3){
-        $query="SELECT c_name, category, COUNT(*) AS no_of_counts FROM main GROUP BY c_name;";
+        $query="SELECT * FROM total_components";
         $stmt = $pdo->prepare($query);
         $stmt->execute();
         $result=$stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -169,7 +169,7 @@ $app->post('/getComponentList',function(Request $request,Response $response){
         return $response->withHeader('Content-Type', 'application/json');
 
     }else{
-        $query="SELECT c_name, category, COUNT(*) AS no_of_counts FROM main WHERE category = :category GROUP BY c_name;";
+        $query="SELECT * from total_components WHERE category = :category";
         $stmt = $pdo->prepare($query);
         $stmt->bindParam(':category',$category);
         $stmt->execute();
@@ -278,7 +278,7 @@ $app->post('/email',function(Request $request,Response $response){
     $mail->addAddress('karthik.s@pixelexpert.net', 'karthik');     //Add a recipient
     $mail->isHTML(true);                                  //Set email format to HTML
     $mail->Subject = $data['subject'];
-    $mail->Body = 'Hi Kalaichelvi Dhandapani <br> Below is the component list that I want, Please check and give the approval<br><br><br>';
+    $mail->Body = 'Hi Subashini Purushothaman <br> Below is the component list that I want, Please check and give the approval<br><br><br>';
     $i=1;
     foreach ($data['body'] as $components) {
             $mail->Body .= $i.'. '.$components.'<br>';
@@ -297,6 +297,37 @@ $app->post('/email',function(Request $request,Response $response){
         return $response;
 
     }
+    return $response->withHeader('Content-Type', 'application/json');
+});
+
+$app->post('/adminbackend',function(Request $request,Response $response){
+    $pdo = $request->getAttribute('pdo');
+    $data =  json_decode(file_get_contents('php://input'), true);
+    $name = $data['c_name'];
+    $request_count = $data['count'];
+    $querry = "SELECT * from total_components where c_name = :c_name";
+    $stmt =$pdo->prepare($querry);
+    $stmt->bindParam(':c_name',$name);
+    $stmt->execute();
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    $old_count = $result['no_of_counts'];
+    $new_count = ($old_count-$request_count);
+    $querry = "UPDATE total_components SET no_of_counts = :new_count WHERE c_name = :c_name";
+    $stmt =$pdo->prepare($querry);
+    $stmt->bindParam(':new_count',$new_count);
+    $stmt->bindParam(':c_name',$name);
+    $stmt->execute();
+    $response->getBody()->write(json_encode(['success' => true, 'message' => 'components approved']));
+    return $response;
+    });
+
+$app->get('/admindashboard',function(Request $request,Response $response){
+    $pdo = $request->getAttribute('pdo');
+    $querry = "SELECT * from total_components";
+    $stmt =$pdo->prepare($querry);
+    $stmt->execute();
+    $final_result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $response->getBody()->write(json_encode($final_result));
     return $response->withHeader('Content-Type', 'application/json');
 });
 
