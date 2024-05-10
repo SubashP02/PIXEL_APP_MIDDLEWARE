@@ -62,7 +62,7 @@ $app->post('/login', function (Request $request, Response $response, $args) {
         return $response;
     }
     $pdo = $request->getAttribute('pdo');
-    $query = "SELECT * FROM registration WHERE gmail= :GMAIL";
+    $query = "SELECT *,ed.role FROM registration as r INNER JOIN Employee_details as ed ON r.gmail = ed.Email_ID WHERE gmail= :GMAIL";
     $stmt = $pdo->prepare($query);
     $stmt->bindParam(':GMAIL', $gmail);
     $stmt->execute();
@@ -73,7 +73,7 @@ $app->post('/login', function (Request $request, Response $response, $args) {
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
     $hashedPassword = $result['password'];
     if (password_verify($pwd, $hashedPassword)) {
-        $response->getBody()->write(json_encode(['success' => true, 'message' => 'Welcome '.$result['name']]));
+        $response->getBody()->write(json_encode(['success' => true, 'role' => 'Welcome '.$result['role']]));
         return $response;
     } else {
         $response->getBody()->write(json_encode(['success' => false, 'message' => 'Email or password does not exist. Please register.']));
@@ -161,7 +161,7 @@ $app->post('/getComponentList',function(Request $request,Response $response){
     $data = json_decode(file_get_contents('php://input'), true);  
     $category = $data['category'];
     if($category == 3){
-        $query="SELECT c_name,no_of_counts FROM total_components";
+        $query="SELECT tc.c_name,tc.no_of_counts,m.asset_no FROM total_components as tc INNER JOIN main as m on tc.c_name = m.c_name";
         $stmt = $pdo->prepare($query);
         $stmt->execute();
         $result=$stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -169,7 +169,7 @@ $app->post('/getComponentList',function(Request $request,Response $response){
         return $response->withHeader('Content-Type', 'application/json');
 
     }else{
-        $query="SELECT c_name,no_of_counts from total_components WHERE category = :category";
+        $query="SELECT tc.c_name,tc.no_of_counts,m.asset_no FROM total_components as tc INNER JOIN main as m on tc.c_name = m.c_name WHERE tc.category = :category";
         $stmt = $pdo->prepare($query);
         $stmt->bindParam(':category',$category);
         $stmt->execute();
@@ -263,9 +263,51 @@ $app->post('/updatePassword',function(Request $request,Response $response){
 });
 
 
+// $app->post('/email',function(Request $request,Response $response){
+//     $data =  json_decode(file_get_contents('php://input'), true);  
+//     $owner = $data['name'];
+//     $mail = new PHPMailer(true);
+//     $mail->isSMTP();
+//     $mail->Host       = 'smtp.gmail.com';                     //Set the SMTP server to send through
+//     $mail->SMTPAuth   = true;                                   //Enable SMTP authentication
+//     $mail->Username   = 'pixelexperttechnology@gmail.com';                     //SMTP username
+//     $mail->Password   = 'azdxvitwcroyplet';                               //SMTP password
+//     $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;            //Enable implicit TLS encryption
+//     $mail->Port       = 465; 
+//     $mail->setFrom('subashparthiban2@gmail.com', $owner);
+//     $mail->addAddress('karthik.s@pixelexpert.net', 'karthik');     //Add a recipient
+//     $mail->isHTML(true);                                  //Set email format to HTML
+//     $mail->Subject = $data['subject'];
+//     $mail->Body = 'Hi Subashini Purushothaman <br> Below is the component list that I want, Please check and give the approval<br><br>';
+//     $length = sizeof($data['body']);
+//     for($i=0,$j=1;$i<$length;$i++,$j++){
+//         $count_string=$data['count'][$i]==1?'count':'counts';
+//         $mail->Body .=$j.'. '.$data['body'][$i]. ' -> ' . $data['count'][$i] .' ' .$count_string.'<br>';
+//         $pdo = $request->getAttribute('pdo');
+//         $query = "INSERT INTO `admin_view`(`components`, `quantity`, `flag`) VALUES (:components, :quantity, 1); ";
+//         $stmt = $pdo->prepare($query);
+//         $stmt->bindParam(':components',$data['body'][$i]);
+//         $stmt->bindParam(':quantity',$data['count'][$i]);
+//         $stmt->execute();
+//     }
+//     $mail->Body .= '<br>Thanks<br>' . $data['name'];
+       
+//     $mail->send();
+//     if($mail){
+//      $response->getBody()->write(json_encode(['success' => true, 'message' => 'Successfully send']));
+//        return $response;
+//     }else{
+//         $response->getBody()->write(json_encode(['success' => false, 'message' => 'unsuccess']));
+//         return $response;
+
+//     }
+//     return $response->withHeader('Content-Type', 'application/json');
+// });
+
+
 $app->post('/email',function(Request $request,Response $response){
     $data =  json_decode(file_get_contents('php://input'), true);  
-    $owner = $data['name'];
+    $owner = $data['employee_name'];
     $mail = new PHPMailer(true);
     $mail->isSMTP();
     $mail->Host       = 'smtp.gmail.com';                     //Set the SMTP server to send through
@@ -275,22 +317,22 @@ $app->post('/email',function(Request $request,Response $response){
     $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;            //Enable implicit TLS encryption
     $mail->Port       = 465; 
     $mail->setFrom('subashparthiban2@gmail.com', $owner);
-    $mail->addAddress('subash.p@pixelexpert.net', 'karthik');     //Add a recipient
+    $mail->addAddress('karthik.s@pixelexpert.net', 'karthik');     //Add a recipient
     $mail->isHTML(true);                                  //Set email format to HTML
-    $mail->Subject = $data['subject'];
+    $mail->Subject = $data['request'];
     $mail->Body = 'Hi Subashini Purushothaman <br> Below is the component list that I want, Please check and give the approval<br><br>';
-    $length = sizeof($data['body']);
+    $length = sizeof($data['component_list']);
+    print_r($length);
     for($i=0,$j=1;$i<$length;$i++,$j++){
-        $count_string=$data['count'][$i]==1?'count':'counts';
-        $mail->Body .=$j.'. '.$data['body'][$i]. ' -> ' . $data['count'][$i] .' ' .$count_string.'<br>';
+        $mail->Body .=$j.'. '.$data['component_list'][$i]['component_name'].'   ->'.$data['component_list'][$i]['asset_id'].'<br>';
         $pdo = $request->getAttribute('pdo');
-        $query = "INSERT INTO `admin_view`(`components`, `quantity`, `flag`) VALUES (:components, :quantity, 1); ";
+        $query = "INSERT INTO `admin_view`(`components`, `asset_id`, `flag`) VALUES (:components, :asset_id, 1); ";
         $stmt = $pdo->prepare($query);
-        $stmt->bindParam(':components',$data['body'][$i]);
-        $stmt->bindParam(':quantity',$data['count'][$i]);
+        $stmt->bindParam(':components',$data['component_list'][$i]['component_name']);
+        $stmt->bindParam(':asset_id',$data['component_list'][$i]['asset_id']);
         $stmt->execute();
     }
-    $mail->Body .= '<br>Thanks<br>' . $data['name'];
+    $mail->Body .= '<br>Thanks<br>' . $data['employee_name'];
        
     $mail->send();
     if($mail){
@@ -303,6 +345,10 @@ $app->post('/email',function(Request $request,Response $response){
     }
     return $response->withHeader('Content-Type', 'application/json');
 });
+
+
+
+
 // // 
 // $app->post('/adminbackend',function(Request $request,Response $response){
 //     $pdo = $request->getAttribute('pdo');
@@ -327,7 +373,7 @@ $app->post('/email',function(Request $request,Response $response){
 
 $app->get('/admindashboard',function(Request $request,Response $response){
     $pdo = $request->getAttribute('pdo');
-    $querry = "SELECT admin_view.*, total_components.no_of_counts FROM admin_view JOIN total_components ON admin_view.components = total_components.c_name where flag=1;";
+    $querry = "SELECT admin_view.components,admin_view.asset_id,admin_view.change_status, total_components.no_of_counts FROM admin_view JOIN total_components ON admin_view.components = total_components.c_name where flag=1;";
     $stmt =$pdo->prepare($querry);
     $stmt->execute();
     $final_result = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -335,23 +381,64 @@ $app->get('/admindashboard',function(Request $request,Response $response){
     return $response->withHeader('Content-Type', 'application/json');
 });
 
+// $app->post('/admin_status_change',function(Request $request,Response $response){
+//     $pdo = $request->getAttribute('pdo');
+//     $data =  json_decode(file_get_contents('php://input'), true);
+//     $length = sizeof($data['components']);
+//     for($i=0;$i<$length;$i++){
+//         $querry = "UPDATE admin_view AS av
+//         JOIN total_components AS tc ON av.components = tc.c_name
+//         JOIN main AS mt ON av.components = mt.c_name -- Assuming component_name is the column in main_table to join with components in admin_view
+//         SET 
+//             av.change_status = CASE WHEN av.components = :components THEN :pressed_status ELSE av.change_status END,
+//             av.flag = CASE WHEN av.components = :components THEN 0 ELSE av.flag END,
+//             tc.no_of_counts = tc.no_of_counts - :user_entered_count,
+//             mt.status = CASE WHEN mt.asset_no = :user_asset_id THEN :new_status_value ELSE mt.status END
+//  -- Assuming :new_status_value is the new status value you want to update
+//         WHERE av.components = :components;
+//         ";
+//         $stmt = $pdo->prepare($querry);
+//         $stmt->bindParam(':components',$data['components'][$i]);
+//         $stmt->bindParam(':pressed_status',$data['status'][$i]);
+//         $stmt->bindParam(':user_asset_id',$data['user_asset_id'][$i]);
+//         $stmt->bindParam(':user_entered_count',$data['user_entered_count'][$i]);
+//         $stmt->execute();
+//     }
+//     $response->getBody()->write(json_encode(['success' => true, 'message' => 'components provided']));
+//     return $response->withHeader('Content-Type', 'application/json');
+
+// });
+
+
+
 $app->post('/admin_status_change',function(Request $request,Response $response){
     $pdo = $request->getAttribute('pdo');
     $data =  json_decode(file_get_contents('php://input'), true);
-    $length = sizeof($data['components']);
+    $length = sizeof($data['components_details']);
+    print_r($length);
     for($i=0;$i<$length;$i++){
-        $querry = "UPDATE admin_view AS av
-        JOIN total_components AS tc ON av.components = tc.c_name
-        SET 
-            av.change_status = CASE WHEN av.components = :components THEN :pressed_status ELSE av.change_status END,
-            av.flag = CASE WHEN av.components = :components THEN 0 ELSE av.flag END,
-            tc.no_of_counts = tc.no_of_counts - :user_entered_count
-        WHERE av.components = :components;
+        $querry = "UPDATE main as m
+        JOIN admin_view AS av ON m.c_name = av.components
+        SET m.no_of_counts = m.no_of_counts - 1,
+            m.status = :pressed_status,
+            av.flag = 0
+        WHERE m.asset_no = :user_asset_id;
+        CREATE TRIGGER update_total_components
+AFTER UPDATE ON main
+FOR EACH ROW
+BEGIN
+    IF OLD.no_of_counts != NEW.no_of_counts THEN
+        UPDATE total_components tc
+        JOIN main m ON tc.c_name = m.c_name
+        SET tc.no_of_counts = tc.no_of_counts - 1
+        WHERE m.asset_no = NEW.asset_no;
+    END IF;
+END;
+
         ";
         $stmt = $pdo->prepare($querry);
-        $stmt->bindParam(':components',$data['components'][$i]);
-        $stmt->bindParam(':pressed_status',$data['status'][$i]);
-        $stmt->bindParam(':user_entered_count',$data['user_entered_count'][$i]);
+        $stmt->bindParam(':pressed_status',$data['components_details'][$i]['status']);
+        $stmt->bindParam(':user_asset_id',$data['components_details'][$i]['user_asset_id']);
         $stmt->execute();
     }
     $response->getBody()->write(json_encode(['success' => true, 'message' => 'components provided']));
