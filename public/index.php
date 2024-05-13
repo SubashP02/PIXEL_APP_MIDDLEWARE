@@ -308,6 +308,7 @@ $app->post('/updatePassword',function(Request $request,Response $response){
 $app->post('/email',function(Request $request,Response $response){
     $data =  json_decode(file_get_contents('php://input'), true);  
     $owner = $data['employee_name'];
+    $pdo = $request->getAttribute('pdo');
     $mail = new PHPMailer(true);
     $mail->isSMTP();
     $mail->Host       = 'smtp.gmail.com';                     //Set the SMTP server to send through
@@ -322,10 +323,21 @@ $app->post('/email',function(Request $request,Response $response){
     $mail->Subject = $data['request'];
     $mail->Body = 'Hi Subashini Purushothaman <br> Below is the component list that I want, Please check and give the approval<br><br>';
     $length = sizeof($data['component_list']);
-    print_r($length);
+    for($i=0,$j=1;$i<$length;$i++,$j++){
+        $query  = "SELECT no_of_counts,c_name from main where asset_no = :asset_id ";
+        $stmt = $pdo->prepare($query);
+        $stmt->bindParam(':asset_id',$data['component_list'][$i]['asset_id']);
+        $stmt->execute();
+        $result = $stmt->fetchAll();
+        $count = $result[0]['no_of_counts'];
+    }
+    if($count==0){
+        $response->getBody()->write(json_encode(['success' => false, 'message' => 'selected components are not available']));
+    }else{
+
+    
     for($i=0,$j=1;$i<$length;$i++,$j++){
         $mail->Body .=$j.'. '.$data['component_list'][$i]['component_name'].'   ->'.$data['component_list'][$i]['asset_id'].'<br>';
-        $pdo = $request->getAttribute('pdo');
         $query = "INSERT INTO `admin_view`(`components`, `asset_id`, `flag`) VALUES (:components, :asset_id, 1); ";
         $stmt = $pdo->prepare($query);
         $stmt->bindParam(':components',$data['component_list'][$i]['component_name']);
@@ -343,7 +355,9 @@ $app->post('/email',function(Request $request,Response $response){
         return $response;
 
     }
+}
     return $response->withHeader('Content-Type', 'application/json');
+
 });
 
 
