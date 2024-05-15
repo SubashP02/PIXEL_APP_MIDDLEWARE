@@ -62,7 +62,7 @@ $app->post('/login', function (Request $request, Response $response, $args) {
         return $response;
     }
     $pdo = $request->getAttribute('pdo');
-    $query = "SELECT *,ed.role FROM registration as r INNER JOIN Employee_details as ed ON r.gmail = ed.Email_ID WHERE gmail= :GMAIL";
+    $query = "SELECT *,ed.role,ed.Employee_Name FROM registration as r INNER JOIN Employee_details as ed ON r.gmail = ed.Email_ID WHERE gmail= :GMAIL";
     $stmt = $pdo->prepare($query);
     $stmt->bindParam(':GMAIL', $gmail);
     $stmt->execute();
@@ -73,7 +73,7 @@ $app->post('/login', function (Request $request, Response $response, $args) {
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
     $hashedPassword = $result['password'];
     if (password_verify($pwd, $hashedPassword)) {
-        $response->getBody()->write(json_encode(['success' => true, 'role' => 'Welcome '.$result['role']]));
+        $response->getBody()->write(json_encode(['success' => true, 'role' => 'Welcome '.$result['role']."    ".$result['Employee_Name']]));
         return $response;
     } else {
         $response->getBody()->write(json_encode(['success' => false, 'message' => 'Email or password does not exist. Please register.']));
@@ -161,7 +161,7 @@ $app->post('/getComponentList',function(Request $request,Response $response){
     $data = json_decode(file_get_contents('php://input'), true);  
     $category = $data['category'];
     if($category == 3){
-        $query="SELECT tc.c_name,tc.no_of_counts,m.asset_no FROM total_components as tc INNER JOIN main as m on tc.c_name = m.c_name";
+        $query="SELECT tc.c_name,tc.no_of_counts,m.asset_no,m.status FROM total_components as tc INNER JOIN main as m on tc.c_name = m.c_name";
         $stmt = $pdo->prepare($query);
         $stmt->execute();
         $result=$stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -169,7 +169,7 @@ $app->post('/getComponentList',function(Request $request,Response $response){
         return $response->withHeader('Content-Type', 'application/json');
 
     }else{
-        $query="SELECT tc.c_name,tc.no_of_counts,m.asset_no FROM total_components as tc INNER JOIN main as m on tc.c_name = m.c_name WHERE tc.category = :category";
+        $query="SELECT tc.c_name,tc.no_of_counts,m.asset_no,m.status FROM total_components as tc INNER JOIN main as m on tc.c_name = m.c_name WHERE tc.category = :category";
         $stmt = $pdo->prepare($query);
         $stmt->bindParam(':category',$category);
         $stmt->execute();
@@ -322,28 +322,32 @@ $app->post('/email',function(Request $request,Response $response){
     $mail->isHTML(true);                                  //Set email format to HTML
     $mail->Subject = $data['request'];
     $mail->Body = 'Hi Subashini Purushothaman <br> Below is the component list that I want, Please check and give the approval<br><br>';
-    $length = sizeof($data['component_list']);
-    for($i=0,$j=1;$i<$length;$i++,$j++){
-        $query  = "SELECT no_of_counts,c_name from main where asset_no = :asset_id ";
-        $stmt = $pdo->prepare($query);
-        $stmt->bindParam(':asset_id',$data['component_list'][$i]['asset_id']);
-        $stmt->execute();
-        $result = $stmt->fetchAll();
-        $count = $result[0]['no_of_counts'];
-    }
-    if($count==0){
-        $response->getBody()->write(json_encode(['success' => false, 'message' => 'selected components are not available']));
-    }else{
+    $componentlist = sizeof($data['component_list']);
+    // for($i=0,$j=1;$i<$length;$i++,$j++){
+    //     $query  = "SELECT no_of_counts,c_name from main where asset_no = :asset_id ";
+    //     $stmt = $pdo->prepare($query);
+    //     $stmt->bindParam(':asset_id',$data['component_list'][$i]['asset_id'][$i]);
+    //     $stmt->execute();
+    //     $result = $stmt->fetchAll();
+    //     $count = $result[0]['no_of_counts'];
+    // }
+    // if($count==0){
+    //     $response->getBody()->write(json_encode(['success' => false, 'message' => 'selected components are not available']));
+    // }else{
 
-    
-    for($i=0,$j=1;$i<$length;$i++,$j++){
-        $mail->Body .=$j.'. '.$data['component_list'][$i]['component_name'].'   ->'.$data['component_list'][$i]['asset_id'].'<br>';
-        $query = "INSERT INTO `admin_view`(`components`, `asset_id`, `flag`) VALUES (:components, :asset_id, 1); ";
-        $stmt = $pdo->prepare($query);
-        $stmt->bindParam(':components',$data['component_list'][$i]['component_name']);
-        $stmt->bindParam(':asset_id',$data['component_list'][$i]['asset_id']);
-        $stmt->execute();
-    }
+        for ($i = 0, $j = 1; $i < $componentlist; $i++) {
+            $assetlength = sizeof($data['component_list'][$i]['asset_id']);
+            for ($z = 0; $z < $assetlength; $z++, $j++) {
+                $mail->Body .= $j . '. ' . $data['component_list'][$i]['component_name'] . '   ->' . $data['component_list'][$i]['asset_id'][$z] . '<br>';
+                $query = "INSERT INTO `admin_view`(`components`, `asset_id`, `flag`) VALUES (:components, :asset_id, 1); ";
+                $stmt = $pdo->prepare($query);
+                $stmt->bindParam(':components', $data['component_list'][$i]['component_name']);
+                $stmt->bindParam(':asset_id', $data['component_list'][$i]['asset_id'][$z]);
+                $stmt->execute();
+            }
+        }
+        
+        
     $mail->Body .= '<br>Thanks<br>' . $data['employee_name'];
        
     $mail->send();
@@ -355,7 +359,7 @@ $app->post('/email',function(Request $request,Response $response){
         return $response;
 
     }
-}
+// }
     return $response->withHeader('Content-Type', 'application/json');
 
 });
