@@ -66,6 +66,7 @@ $app->post('/login', function (Request $request, Response $response, $args) {
     $stmt = $pdo->prepare($query);
     $stmt->bindParam(':GMAIL', $gmail);
     $stmt->execute();
+    $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
     if($stmt->execute()==0){
         $response->getBody()->write(json_encode(['success' => false, 'message' => 'Email or password does not exist. Please register.']));
         return $response;
@@ -73,7 +74,8 @@ $app->post('/login', function (Request $request, Response $response, $args) {
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
     $hashedPassword = $result['password'];
     if (password_verify($pwd, $hashedPassword)) {
-        $response->getBody()->write(json_encode(['success' => true, 'role' => 'Welcome '.$result['role']."    ".$result['Employee_Name']]));
+        // $response->getBody()->write(json_encode($result['name']));
+        $response->getBody()->write(json_encode(['success' => true, 'role' => $result['role'], 'name' => $result['Employee_Name']]));
         return $response;
     } else {
         $response->getBody()->write(json_encode(['success' => false, 'message' => 'Email or password does not exist. Please register.']));
