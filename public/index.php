@@ -341,10 +341,11 @@ $app->post('/email',function(Request $request,Response $response){
             $assetlength = sizeof($data['component_list'][$i]['asset_id']);
             for ($z = 0; $z < $assetlength; $z++, $j++) {
                 $mail->Body .= $j . '. ' . $data['component_list'][$i]['component_name'] . '   ->' . $data['component_list'][$i]['asset_id'][$z] . '<br>';
-                $query = "INSERT INTO `admin_view`(`components`, `asset_id`, `flag`) VALUES (:components, :asset_id, 1); ";
+                $query = "INSERT INTO `admin_view`(components,asset_id, flag,employee_name) VALUES (:components, :asset_id, 1,:employee_name); ";
                 $stmt = $pdo->prepare($query);
                 $stmt->bindParam(':components', $data['component_list'][$i]['component_name']);
                 $stmt->bindParam(':asset_id', $data['component_list'][$i]['asset_id'][$z]);
+                $stmt->bindParam(':employee_name', $data['employee_name']);
                 $stmt->execute();
             }
         }
@@ -366,7 +367,15 @@ $app->post('/email',function(Request $request,Response $response){
 
 });
 
-
+$app->get('/adminlistview',function(Request $request,Response $response){
+    $pdo = $request->getAttribute('pdo');
+    $query = "SELECT DISTINCT employee_name FROM admin_view where flag = 1;";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute();
+    $result = $stmt->fetchAll();
+    $response->getBody()->write(json_encode($result));
+    return $response->withHeader('Content-Type', 'application/json');
+});
 
 
 // // 
@@ -391,10 +400,13 @@ $app->post('/email',function(Request $request,Response $response){
 //     return $response;
 //     });
 
-$app->get('/admindashboard',function(Request $request,Response $response){
+$app->post('/admindashboard',function(Request $request,Response $response){
+    $data =  json_decode(file_get_contents('php://input'), true);  
+    $name = $data['name'];
     $pdo = $request->getAttribute('pdo');
-    $querry = "SELECT admin_view.components,admin_view.asset_id,admin_view.change_status, total_components.no_of_counts FROM admin_view JOIN total_components ON admin_view.components = total_components.c_name where flag=1;";
+    $querry = "SELECT admin_view.components,admin_view.asset_id,admin_view.change_status, total_components.no_of_counts FROM admin_view JOIN total_components ON admin_view.components = total_components.c_name where flag=1 and employee_name = :name;";
     $stmt =$pdo->prepare($querry);
+    $stmt->bindParam(':name',$name);
     $stmt->execute();
     $final_result = $stmt->fetchAll(PDO::FETCH_ASSOC);
     $response->getBody()->write(json_encode($final_result));
@@ -435,7 +447,7 @@ $app->post('/admin_status_change',function(Request $request,Response $response){
     $pdo = $request->getAttribute('pdo');
     $data =  json_decode(file_get_contents('php://input'), true);
     $length = sizeof($data['components_details']);
-    print_r($length);
+    // print_r($length);
     for($i=0;$i<$length;$i++){
         $querry = "UPDATE main as m
         JOIN admin_view AS av ON m.c_name = av.components
