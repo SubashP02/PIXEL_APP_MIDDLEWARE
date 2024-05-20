@@ -170,8 +170,9 @@ $app->post('/getComponentList',function(Request $request,Response $response){
         $response->getBody()->write(json_encode($result)); 
         return $response->withHeader('Content-Type', 'application/json');
 
-    }else{
-        $query="SELECT tc.c_name,tc.no_of_counts,m.asset_no,m.status FROM total_components as tc INNER JOIN main as m on tc.c_name = m.c_name WHERE tc.category = :category";
+     }
+    else{
+       $query="SELECT c_name,asset_no,status FROM main WHERE category = :category AND status = 'Available'";
         $stmt = $pdo->prepare($query);
         $stmt->bindParam(':category',$category);
         $stmt->execute();
@@ -320,7 +321,7 @@ $app->post('/email',function(Request $request,Response $response){
     $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;            //Enable implicit TLS encryption
     $mail->Port       = 465; 
     $mail->setFrom('subashparthiban2@gmail.com', $owner);
-    $mail->addAddress('karthik.s@pixelexpert.net', 'karthik');     //Add a recipient
+    $mail->addAddress('subashini.p@pixelexpert.net', 'Subashini');     //Add a recipient
     $mail->isHTML(true);                                  //Set email format to HTML
     $mail->Subject = $data['request'];
     $mail->Body = 'Hi Subashini Purushothaman <br> Below is the component list that I want, Please check and give the approval<br><br>';
